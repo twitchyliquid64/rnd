@@ -1,0 +1,104 @@
+<html>
+<head>
+    <title>Research Net</title>
+
+    <!-- Materialize CSS -->
+    <link rel="stylesheet" href="/static/css/material-icons.css">
+    <link rel="stylesheet" href="/static/css/materialize.min.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
+    <link rel="stylesheet" href="/static/css/general.css">
+
+    <style type="text/css">
+    /**
+     * Hide when Angular is not yet loaded and initialized
+     */
+    [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+      display: none !important;
+    }
+    </style>
+
+    <!-- JavaScript for: jQuery, angular, materialize, and angular-materialize. All of which are needed. -->
+    <script type="text/javascript" src="/static/js/libs/jquery-3.0.0.min.js"></script>
+    <script type="text/javascript" src="/static/js/libs/angular.min.js"></script>
+    <script type="text/javascript" src="/static/js/libs/moment.min.js"></script>
+    <script type="text/javascript" src="/static/js/libs/angular-moment.min.js"></script>
+    <script type="text/javascript" src="/static/js/libs/materialize.min.js"></script>
+    <script type="text/javascript" src="/static/js/libs/angular-materialize.min.js"></script>
+
+
+    <!-- application initialization -->
+    <script type="text/javascript" src="/static/js/app.js"></script>
+
+</head>
+<body ng-app="kcdb" ng-controller="BodyController" ng-cloak>
+
+  <nav class="red darken-2" role="navigation">
+    <div class="nav-wrapper">
+      <a id="logo-container" href="#" class="brand-logo"><i class="material-icons">graphic_eq</i> Research Net</a>
+      <ul class="right hide-on-med-and-down">
+        <li ng-class="{active: page == 'home'}"><a ng-click="changePage('home')"><i class="material-icons">home</i></a></li>
+        <li ng-class="{active: page == 'wifi'}"><a ng-click="changePage('wifi')"><i class="material-icons">wifi</i></a></li>
+      </ul>
+      <a data-activates="nav-mobile"  data-sidenav="left" data-menuwidth="500" data-closeonclick="true" class="button-collapse"><i class="material-icons">menu</i></a>
+    </div>
+  </nav>
+
+  <ul id="nav-mobile" class="side-nav">
+    <li><a ng-click="changePage('home')">Home</a></li>
+    <li><a ng-click="changePage('wifi')">Station</a></li>
+  </ul>
+
+
+    <div>
+      <div ng-show="page=='home'" ng-controller="HomeController">
+        <div class="loader"><div ng-show="loading" class="progress"><div class="indeterminate"></div></div></div>
+        <blockquote ng-show="error"><h5>Error</h5>
+          <ul class="collection">
+            <li class="collection-item"><b>Error code</b>: {{ec()}}</li>
+            <li class="collection-item"><b>Explanation</b>: {{exp()}}</li>
+            <li class="collection-item"><b>The server said</b>: {{error.data}}{{error.reason}}</li>
+          </ul>
+        </blockquote>
+
+        <div class="section" style="padding: 0px 15px;">
+
+          <div class="row" ng-show="!loading">
+            <div class="col s12 m4">
+              <div class="card horizontal">
+                <div class="card-content black-text">
+                  <span class="card-title">Circuit breaker</span>
+                  <p>OK.</p>
+                </div>
+              </div>
+            </div>
+            <div class="col s12 m4">
+              <div class="card horizontal">
+                <div class="card-content black-text">
+                  <span class="card-title">VPN</span>
+                  <p>Offline.</p>
+                </div>
+              </div>
+            </div>
+            <div class="col s12 m4">
+              <div class="card horizontal">
+                <div class="card-content black-text">
+                  <span class="card-title">Station</span>
+                  <p>Offline.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div ng-show="page=='wifi'">
+        <div class="loader"><div ng-show="loading" class="progress"><div class="indeterminate"></div></div></div>
+        <div class="section" style="padding: 0px 15px;">
+          <h4>Stations</h4>
+
+        </div>
+      </div>
+    </div>
+</body>
+</html>
