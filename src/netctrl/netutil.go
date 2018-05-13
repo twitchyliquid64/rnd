@@ -50,3 +50,17 @@ func AttachNetBridge(bridge, client *net.Interface) error {
 
 	return netlink.LinkSetMaster(clientLink, bridgeLink.(*netlink.Bridge))
 }
+
+// RouteAddViaGatewayFromAddr adds a new route to the given IP network,
+// routed by the given gateway when it comes from the given source.
+// This is equivalent to 'ip route add <destination> via <gateway>'.
+func RouteAddViaGatewayFromAddr(destination *net.IPNet, source, gateway net.IP) error {
+
+	route := &netlink.Route{
+		Src:      source,
+		Dst:      destination,
+		Gw:       gateway,
+		Priority: 1337,
+	}
+	return netlink.RouteAdd(route)
+}

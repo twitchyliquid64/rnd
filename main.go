@@ -3,6 +3,7 @@ package main
 import (
 	"config"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -26,17 +27,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	s := makeServer(c)
-	log.Println("Listening on " + c.Listener + " ...")
-	go s.ListenAndServe()
-	defer s.Shutdown(context.Background())
-
 	ctr, err := netctrl.NewController(c)
 	if err != nil {
 		fmt.Printf("Failed to start network controller: %v\n", err)
 		return
 	}
 	defer ctr.Close()
+
+	s := makeServer(c, ctr)
+	log.Println("Listening on " + c.Listener + " ...")
+	go s.ListenAndServe()
+	defer s.Shutdown(context.Background())
 
 	if len(c.VPNConfigurations) > 0 {
 		if err := ctr.SetVPN(&c.VPNConfigurations[0]); err != nil {
@@ -55,7 +56,7 @@ func main() {
 	}
 }
 
-func makeServer(c *config.Config) *http.Server {
+func makeServer(c *config.Config, ctr *netctrl.Controller) *http.Server {
 	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path != "/" {
@@ -63,6 +64,10 @@ func makeServer(c *config.Config) *http.Server {
 			return
 		}
 		d, _ := ioutil.ReadFile("static/index.html")
+		w.Write(d)
+	})
+	http.HandleFunc("/status", func(w http.ResponseWriter, req *http.Request) {
+		d, _ := json.Marshal(ctr.GetState())
 		w.Write(d)
 	})
 	s := &http.Server{

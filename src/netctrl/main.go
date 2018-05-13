@@ -3,6 +3,7 @@ package netctrl
 import (
 	"config"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
@@ -10,12 +11,15 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/vishvananda/netlink"
 )
 
 // Controller manages a VPN connection and wifi hotspot.
 type Controller struct {
-	shutdown chan bool
-	wg       sync.WaitGroup
+	setupLock sync.Mutex
+	shutdown  chan bool
+	wg        sync.WaitGroup
 
 	config *config.Config
 
@@ -25,6 +29,11 @@ type Controller struct {
 
 	vpnProc      *exec.Cmd
 	vpnInterface *net.Interface
+	vpnAddr      net.IP
+	vpnConf      *config.VPNOpt
+
+	breakerUpdated time.Time
+	breakerTripped bool
 }
 
 // Close shuts down the VPN and hotspot
@@ -47,6 +56,9 @@ func (c *Controller) Close() error {
 
 // SetVPN sets the network to tunnel all traffic through the VPN specified.
 func (c *Controller) SetVPN(vpn *config.VPNOpt) error {
+	c.setupLock.Lock()
+	defer c.setupLock.Unlock()
+	c.vpnConf = vpn
 	pw, err := ioutil.TempFile("", "")
 	if err != nil {
 		return err
@@ -59,9 +71,7 @@ func (c *Controller) SetVPN(vpn *config.VPNOpt) error {
 	}
 	defer os.Remove(pw.Name())
 
-	vpnAddr := c.bridgeAddr
-	vpnAddr[len(vpnAddr)-1]++
-	c.vpnProc = exec.Command("openvpn", "--config", vpn.Path, "--dev", "tun"+c.config.Network.InterfaceIdent, "--auth-user-pass", pw.Name(), "--auth-nocache", "--route-noexec")
+	c.vpnProc = exec.Command("openvpn", "--config", vpn.Path, "--dev", "tun"+c.config.Network.InterfaceIdent, "--auth-user-pass", pw.Name(), "--auth-nocache") //, "--route-noexec")
 	c.vpnProc.Stdout = os.Stdout
 	c.vpnProc.Stderr = os.Stderr
 	if err = c.vpnProc.Start(); err != nil {
@@ -88,11 +98,52 @@ func (c *Controller) SetVPN(vpn *config.VPNOpt) error {
 		}
 	}
 
+	// get local IP of VPN interface
 	if c.vpnInterface, err = net.InterfaceByName("tun" + c.config.Network.InterfaceIdent); err != nil {
 		return err
 	}
+	addrs, err := c.vpnInterface.Addrs()
+	if err != nil {
+		return err
+	}
+	if len(addrs) < 1 {
+		return errors.New("expected at least one address assigned to VPN")
+	}
+	c.vpnAddr = addrs[0].(*net.IPNet).IP
 
+	time.Sleep(3 * time.Second)
 	return nil
+}
+
+func (c *Controller) circuitBreakerRoutine() {
+	defer c.wg.Done()
+	t := time.NewTicker(time.Second)
+	defer t.Stop()
+
+	for {
+		select {
+		case <-c.shutdown:
+			return
+		case <-t.C:
+			if !c.breakerTripped {
+				rts, err := netlink.RouteGet(net.IP{8, 8, 8, 8})
+				if err != nil {
+					fmt.Printf("Failed to eval route: %+v\n", err)
+					break
+				}
+				c.setupLock.Lock()
+				if c.vpnInterface != nil && rts[0].LinkIndex != c.vpnInterface.Index {
+					c.breakerTripped = rts[0].LinkIndex != c.vpnInterface.Index
+					c.breakerUpdated = time.Now()
+					if c.breakerTripped {
+						fmt.Println("Tripped:", rts, c.vpnInterface)
+						// do thing
+					}
+				}
+				c.setupLock.Unlock()
+			}
+		}
+	}
 }
 
 // NewController creates and starts a controller.
@@ -110,5 +161,8 @@ func NewController(c *config.Config) (*Controller, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	ctr.wg.Add(1)
+	go ctr.circuitBreakerRoutine()
 	return ctr, nil
 }

@@ -67,7 +67,9 @@
               <div class="card horizontal">
                 <div class="card-content black-text">
                   <span class="card-title">Circuit breaker</span>
-                  <p>OK.</p>
+                  <p class="green-text" ng-if="!status.breaker.tripped">OK.</p>
+                  <p class="red-text" ng-if="status.breaker.tripped">TRIPPED.</p>
+                  <p>As of <span am-time-ago="status.breaker.last_updated"></span></p>
                 </div>
               </div>
             </div>

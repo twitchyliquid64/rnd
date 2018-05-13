@@ -10,6 +10,7 @@ app.controller('BodyController', ["$scope", "$rootScope", function ($scope, $roo
 
 app.controller('HomeController', ["$scope", "$http", "$rootScope", "$interval", function ($scope, $http, $rootScope, $interval) {
     $scope.loading = true;
+    $scope.status = {};
 
     $scope.loadStatus = function(query){
       $scope.loading = true;
@@ -17,7 +18,6 @@ app.controller('HomeController', ["$scope", "$http", "$rootScope", "$interval", 
       $http({
         method: 'GET',
         url: '/status',
-        data: {query: $scope.searchQ},
       }).then(function successCallback(response) {
         $scope.status = response.data;
         $scope.loading = false;
