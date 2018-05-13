@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/static/css/materialize.min.css">
     <link rel="stylesheet" href="/static/css/animations.css">
     <link rel="stylesheet" href="/static/css/general.css">
+    <link rel="stylesheet" href="/static/css/flag-icon.min.css">
 
     <style type="text/css">
     /**
@@ -69,7 +70,7 @@
                   <span class="card-title">Circuit breaker</span>
                   <p class="green-text" ng-if="!status.breaker.tripped">OK.</p>
                   <p class="red-text" ng-if="status.breaker.tripped">TRIPPED.</p>
-                  <p>As of <span am-time-ago="status.breaker.last_updated"></span></p>
+                  <label><span am-time-ago="status.breaker.last_updated"></span></label>
                 </div>
               </div>
             </div>
@@ -77,7 +78,10 @@
               <div class="card horizontal">
                 <div class="card-content black-text">
                   <span class="card-title">VPN</span>
-                  <p>Offline.</p>
+                  <p ng-if="!status.config.vpn.configured">Offline.</p>
+                  <div ng-if="status.config.vpn.configured">
+                    <p><span class="{{status.config.vpn.icon}}"></span> {{status.config.vpn.name}}</p>
+                  </div>
                 </div>
               </div>
             </div>

@@ -111,7 +111,22 @@ func (c *Controller) SetVPN(vpn *config.VPNOpt) error {
 	}
 	c.vpnAddr = addrs[0].(*net.IPNet).IP
 
-	time.Sleep(3 * time.Second)
+	for {
+		found := false
+		select {
+		case <-timeout.C:
+			return errors.New("timeout waiting for VPN to routes up")
+		case <-checker.C:
+			if rts, err := netlink.RouteGet(net.IP{8, 8, 8, 8}); err != nil || rts[0].LinkIndex != c.vpnInterface.Index {
+				fmt.Printf("Eval: %+v\n", rts)
+			} else {
+				found = true
+			}
+		}
+		if found {
+			break
+		}
+	}
 	return nil
 }
 
@@ -125,14 +140,14 @@ func (c *Controller) circuitBreakerRoutine() {
 		case <-c.shutdown:
 			return
 		case <-t.C:
-			if !c.breakerTripped {
+			if c.vpnInterface != nil && !c.breakerTripped {
+				c.setupLock.Lock()
 				rts, err := netlink.RouteGet(net.IP{8, 8, 8, 8})
 				if err != nil {
 					fmt.Printf("Failed to eval route: %+v\n", err)
 					break
 				}
-				c.setupLock.Lock()
-				if c.vpnInterface != nil && rts[0].LinkIndex != c.vpnInterface.Index {
+				if rts[0].LinkIndex != c.vpnInterface.Index {
 					c.breakerTripped = rts[0].LinkIndex != c.vpnInterface.Index
 					c.breakerUpdated = time.Now()
 					if c.breakerTripped {
@@ -141,6 +156,8 @@ func (c *Controller) circuitBreakerRoutine() {
 					}
 				}
 				c.setupLock.Unlock()
+			} else {
+				c.breakerUpdated = time.Now()
 			}
 		}
 	}
