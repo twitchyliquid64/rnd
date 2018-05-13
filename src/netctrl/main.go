@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"os"
 	"os/exec"
@@ -12,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/krolaw/dhcp4"
+	"github.com/krolaw/dhcp4/conn"
 	"github.com/vishvananda/netlink"
 )
 
@@ -163,6 +166,38 @@ func (c *Controller) circuitBreakerRoutine() {
 	}
 }
 
+func (c *Controller) dhcpRoutine() {
+	listener, err := conn.NewUDP4BoundListener(c.bridgeInterface.Name, ":67")
+	if err != nil {
+		log.Printf("DHCP listen err: %v", err)
+		return
+	}
+	defer listener.Close()
+
+	options := dhcp4.Options{
+		dhcp4.OptionSubnetMask:             []byte{255, 255, 255, 252},
+		dhcp4.OptionRouter:                 []byte(c.bridgeAddr),
+		dhcp4.OptionPerformRouterDiscovery: []byte{0},
+		dhcp4.OptionDomainNameServer:       []byte{8, 8, 8, 8},
+	}
+
+	next := dhcp4.IPAdd(c.bridgeAddr, 1)
+	handler := &bridgeServices{
+		bridgeIP: c.bridgeAddr,
+		next:     next,
+		options:  options,
+		leases:   map[string]net.IP{},
+	}
+
+	for {
+		err := dhcp4.Serve(listener, handler)
+		if err, ok := err.(*net.OpError); ok && !err.Temporary() {
+			fmt.Printf("DHCP Serve() err: %v\n", err)
+			return
+		}
+	}
+}
+
 // NewController creates and starts a controller.
 func NewController(c *config.Config) (*Controller, error) {
 	ctr := &Controller{
@@ -181,5 +216,6 @@ func NewController(c *config.Config) (*Controller, error) {
 
 	ctr.wg.Add(1)
 	go ctr.circuitBreakerRoutine()
+	go ctr.dhcpRoutine()
 	return ctr, nil
 }
