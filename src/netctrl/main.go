@@ -175,7 +175,7 @@ func (c *Controller) dhcpRoutine() {
 	defer listener.Close()
 
 	options := dhcp4.Options{
-		dhcp4.OptionSubnetMask:             []byte{255, 255, 255, 252},
+		dhcp4.OptionSubnetMask:             []byte{255, 255, 255, 0},
 		dhcp4.OptionRouter:                 []byte(c.bridgeAddr),
 		dhcp4.OptionPerformRouterDiscovery: []byte{0},
 		dhcp4.OptionDomainNameServer:       []byte{8, 8, 8, 8},
