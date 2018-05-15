@@ -16,6 +16,7 @@ type Config struct {
 	Network struct {
 		InterfaceIdent string `hcl:"interface_ident"`
 		Subnet         string `hcl:"subnet"`
+		WlanInterface  string `hcl:"wireless_interface"`
 	} `hcl:"network"`
 
 	VPNConfigurations []VPNOpt `hcl:"vpn_configs"`

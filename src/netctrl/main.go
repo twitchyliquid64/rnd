@@ -167,7 +167,11 @@ func (c *Controller) circuitBreakerRoutine() {
 }
 
 func (c *Controller) dhcpRoutine() {
-	listener, err := conn.NewUDP4BoundListener(c.bridgeInterface.Name, ":67")
+	wInterface := c.config.Network.WlanInterface
+	if wInterface == "" {
+		wInterface = c.bridgeInterface.Name
+	}
+	listener, err := conn.NewUDP4BoundListener(wInterface, ":67")
 	if err != nil {
 		log.Printf("DHCP listen err: %v", err)
 		return
