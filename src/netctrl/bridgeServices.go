@@ -1,6 +1,7 @@
 package netctrl
 
 import (
+	"fmt"
 	"net"
 	"time"
 
@@ -14,7 +15,7 @@ type bridgeServices struct {
 }
 
 func (h *bridgeServices) ServeDHCP(p dhcp.Packet, msgType dhcp.MessageType, options dhcp.Options) (d dhcp.Packet) {
-
+	fmt.Printf("DHCP msg from %q: %+v\n", p.CHAddr().String(), p)
 	for n, opt := range h.options {
 		options[n] = opt
 	}
