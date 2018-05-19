@@ -16,7 +16,11 @@ type Config struct {
 	Network struct {
 		InterfaceIdent string `hcl:"interface_ident"`
 		Subnet         string `hcl:"subnet"`
-		WlanInterface  string `hcl:"wireless_interface"`
+		Wireless       struct {
+			Interface string `hcl:"interface"`
+			SSID      string `hcl:"SSID"`
+			Password  string `hcl:"password"`
+		} `hcl:"wireless"`
 	} `hcl:"network"`
 
 	VPNConfigurations []VPNOpt `hcl:"vpn_configs"`

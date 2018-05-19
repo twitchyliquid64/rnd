@@ -64,3 +64,12 @@ func RouteAddViaGatewayFromAddr(destination *net.IPNet, source, gateway net.IP) 
 	}
 	return netlink.RouteAdd(route)
 }
+
+// SetInterfaceAddr sets the IP address on that interface.
+func SetInterfaceAddr(iName string, addr *net.IPNet) error {
+	intf, err := netlink.LinkByName(iName)
+	if err != nil {
+		return err
+	}
+	return netlink.AddrAdd(intf, &netlink.Addr{IPNet: addr})
+}

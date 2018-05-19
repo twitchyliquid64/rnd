@@ -30,6 +30,8 @@ type Controller struct {
 	bridgeAddr      net.IP
 	subnet          *net.IPNet
 
+	wlanAddr net.IP
+
 	vpnProc      *exec.Cmd
 	vpnInterface *net.Interface
 	vpnAddr      net.IP
@@ -167,7 +169,7 @@ func (c *Controller) circuitBreakerRoutine() {
 }
 
 func (c *Controller) dhcpRoutine() {
-	wInterface := c.config.Network.WlanInterface
+	wInterface := c.config.Network.Wireless.Interface
 	if wInterface == "" {
 		wInterface = c.bridgeInterface.Name
 	}
@@ -216,6 +218,13 @@ func NewController(c *config.Config) (*Controller, error) {
 	ctr.bridgeInterface, err = CreateNetBridge("br"+c.Network.InterfaceIdent, ctr.bridgeAddr, &net.IPNet{Mask: ctr.subnet.Mask})
 	if err != nil {
 		return nil, err
+	}
+
+	ctr.wlanAddr = dhcp4.IPAdd(ctr.bridgeAddr, 1)
+	if c.Network.Wireless.Interface != "" {
+		if err := SetInterfaceAddr(c.Network.Wireless.Interface, &net.IPNet{IP: ctr.wlanAddr, Mask: ctr.subnet.Mask}); err != nil {
+			return nil, err
+		}
 	}
 
 	ctr.wg.Add(1)
