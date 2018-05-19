@@ -189,10 +189,11 @@ func (c *Controller) dhcpRoutine() {
 
 	next := dhcp4.IPAdd(c.bridgeAddr, 1)
 	handler := &bridgeServices{
-		bridgeIP: c.bridgeAddr,
-		next:     next,
-		options:  options,
-		leases:   map[string]net.IP{},
+		debug:   c.config.Debug.DHCP,
+		baseIP:  c.wlanAddr,
+		next:    next,
+		options: options,
+		leases:  map[string]net.IP{},
 	}
 
 	for {

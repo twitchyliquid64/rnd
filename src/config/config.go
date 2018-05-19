@@ -23,6 +23,10 @@ type Config struct {
 		} `hcl:"wireless"`
 	} `hcl:"network"`
 
+	Debug struct {
+		DHCP bool `hcl:"dhcp"`
+	} `hcl:"debug"`
+
 	VPNConfigurations []VPNOpt `hcl:"vpn_configs"`
 }
 
