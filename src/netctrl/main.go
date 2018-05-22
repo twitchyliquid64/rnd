@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"netctrl/fsock"
 	"netctrl/hostapd"
 	"os"
 	"os/exec"
@@ -180,19 +179,8 @@ func (c *Controller) circuitBreakerRoutine() {
 }
 
 func (c *Controller) dhcpRoutine() {
-	// laddr, _ := net.ResolveUDPAddr("udp", ":67")
-	// listener, err := net.ListenUDP("udp", laddr)
-	// if err != nil {
-	// 	fmt.Printf("DHCP listen err: %v\n", err)
-	// 	return
-	// }
-	// defer listener.Close()
-
-	wInterface := c.config.Network.Wireless.Interface
-	if wInterface == "" {
-		wInterface = c.bridgeInterface.Name
-	}
-	listener, err := fsock.NewLiveListener([]string{wInterface}, ":67")
+	laddr, _ := net.ResolveUDPAddr("udp", ":67")
+	listener, err := net.ListenUDP("udp", laddr)
 	if err != nil {
 		fmt.Printf("DHCP listen err: %v\n", err)
 		return
@@ -206,7 +194,7 @@ func (c *Controller) dhcpRoutine() {
 		dhcp4.OptionDomainNameServer:       []byte{8, 8, 8, 8},
 	}
 
-	next := dhcp4.IPAdd(c.bridgeAddr, 1)
+	next := dhcp4.IPAdd(c.wlanAddr, 1)
 	handler := &bridgeServices{
 		debug:   c.config.Debug.DHCP,
 		baseIP:  c.wlanAddr,
@@ -214,9 +202,11 @@ func (c *Controller) dhcpRoutine() {
 		options: options,
 		leases:  map[string]net.IP{},
 	}
+	bcast := next
+	bcast[len(bcast)-1] = 255
 
 	for {
-		err := dhcp4.Serve(listener, handler)
+		err := dhcp4.Serve(&dhcpLimitedBroadcastListener{conn: listener, bcastAddr: bcast}, handler)
 		if err, ok := err.(*net.OpError); ok && !err.Temporary() {
 			fmt.Printf("DHCP Serve() err: %v\n", err)
 			return
