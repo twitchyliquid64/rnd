@@ -17,14 +17,16 @@ type Config struct {
 		InterfaceIdent string `hcl:"interface_ident"`
 		Subnet         string `hcl:"subnet"`
 		Wireless       struct {
-			Interface string `hcl:"interface"`
-			SSID      string `hcl:"SSID"`
-			Password  string `hcl:"password"`
+			Interface     string `hcl:"interface"`
+			SSID          string `hcl:"SSID"`
+			Password      string `hcl:"password"`
+			HostapdDriver string `hcl:"hostapd_driver"`
 		} `hcl:"wireless"`
 	} `hcl:"network"`
 
 	Debug struct {
-		DHCP bool `hcl:"dhcp"`
+		DHCP    bool `hcl:"dhcp"`
+		Hostapd bool `hcl:"hostapd"`
 	} `hcl:"debug"`
 
 	VPNConfigurations []VPNOpt `hcl:"vpn_configs"`
@@ -58,6 +60,9 @@ func loadConfig(data []byte) (*Config, error) {
 
 	if err := validate(&c); err != nil {
 		return nil, err
+	}
+	if c.Network.Wireless.HostapdDriver == "" {
+		c.Network.Wireless.HostapdDriver = "nl80211"
 	}
 	return &c, nil
 }

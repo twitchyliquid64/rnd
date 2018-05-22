@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"netctrl/hostapd"
 	"os"
 	"os/exec"
 	"sync"
@@ -30,7 +31,8 @@ type Controller struct {
 	bridgeAddr      net.IP
 	subnet          *net.IPNet
 
-	wlanAddr net.IP
+	wlanAddr    net.IP
+	hostapdProc *exec.Cmd
 
 	vpnProc      *exec.Cmd
 	vpnInterface *net.Interface
@@ -48,6 +50,16 @@ func (c *Controller) Close() error {
 
 	if c.vpnProc != nil {
 		p, err := os.FindProcess(c.vpnProc.Process.Pid)
+		if err != nil {
+			return err
+		}
+		if p.Signal(syscall.Signal(0)) == nil {
+			p.Kill()
+		}
+	}
+
+	if c.hostapdProc != nil {
+		p, err := os.FindProcess(c.hostapdProc.Process.Pid)
 		if err != nil {
 			return err
 		}
@@ -205,6 +217,40 @@ func (c *Controller) dhcpRoutine() {
 	}
 }
 
+// startHostapd starts the hostapd process to manage the AP.
+func (c *Controller) startHostapd() error {
+	pw, err := ioutil.TempFile("", "")
+	if err != nil {
+		return err
+	}
+	conf, err := hostapd.GenerateConfig(c.config)
+	if err != nil {
+		return err
+	}
+
+	if c.config.Debug.Hostapd {
+		fmt.Printf("Hostapd Config: %q\n\n", conf)
+	}
+
+	if _, err = pw.Write([]byte(conf)); err != nil {
+		return err
+	}
+	if err = pw.Close(); err != nil {
+		return err
+	}
+	defer os.Remove(pw.Name())
+
+	c.hostapdProc = exec.Command("hostapd", "-dd", pw.Name())
+	c.hostapdProc.Stdout = os.Stdout
+	c.hostapdProc.Stderr = os.Stderr
+	if err := c.hostapdProc.Start(); err != nil {
+		return err
+	}
+
+	time.Sleep(5 * time.Second)
+	return nil
+}
+
 // NewController creates and starts a controller.
 func NewController(c *config.Config) (*Controller, error) {
 	ctr := &Controller{
@@ -224,8 +270,14 @@ func NewController(c *config.Config) (*Controller, error) {
 	ctr.wlanAddr = dhcp4.IPAdd(ctr.bridgeAddr, 1)
 	if c.Network.Wireless.Interface != "" {
 		if err := SetInterfaceAddr(c.Network.Wireless.Interface, &net.IPNet{IP: ctr.wlanAddr, Mask: ctr.subnet.Mask}); err != nil {
+			DeleteNetBridge(ctr.bridgeInterface.Name)
 			return nil, err
 		}
+	}
+
+	if err := ctr.startHostapd(); err != nil {
+		DeleteNetBridge(ctr.bridgeInterface.Name)
+		return nil, err
 	}
 
 	ctr.wg.Add(1)
