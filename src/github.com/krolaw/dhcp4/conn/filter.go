@@ -1,6 +1,7 @@
 package conn
 
 import (
+	"fmt"
 	"net"
 
 	"golang.org/x/net/ipv4"
@@ -37,6 +38,7 @@ type serveIfConn struct {
 func (s *serveIfConn) ReadFrom(b []byte) (n int, addr net.Addr, err error) {
 	for { // Filter all other interfaces
 		n, s.cm, addr, err = s.conn.ReadFrom(b)
+		fmt.Printf("Got message from %+v\n", s.cm)
 		if err != nil || s.cm == nil || s.cm.IfIndex == s.ifIndex {
 			break
 		}
