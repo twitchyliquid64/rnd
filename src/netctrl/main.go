@@ -256,7 +256,7 @@ func (c *Controller) startHostapd() error {
 			return nil
 			//return errors.New("timeout waiting for hostapd to come up")
 		case <-checker.C:
-			resp, err := hostapd.Query("/var/run/hostapd/"+c.config.Network.Wireless.Interface, "PING")
+			resp, err := hostapd.Query("/var/run/hostapd/"+c.config.Network.Wireless.Interface, "STATUS")
 			fmt.Printf("Respone = %q, err = %v\n", string(resp), err)
 		}
 		if found {

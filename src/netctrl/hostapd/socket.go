@@ -9,7 +9,8 @@ const maxResponseSize = 4096
 
 // Query sends a request to the hostapd socket at sock.
 func Query(sock, command string) ([]byte, error) {
-	c, err := net.Dial("unixgram", sock)
+	laddr := net.UnixAddr{Name: "/tmp/rnd-sock-thingy", Net: "unixgram"}
+	c, err := net.DialUnix("unixgram", &laddr, &net.UnixAddr{Name: sock, Net: "unixgram"})
 	if err != nil {
 		return nil, err
 	}
