@@ -93,8 +93,8 @@ func (c *Controller) SetVPN(vpn *config.VPNOpt) error {
 		return err
 	}
 
-	// wait up to 8 seconds for VPN device to appear
-	timeout := time.NewTicker(8 * time.Second)
+	// wait up to 11 seconds for VPN device to appear
+	timeout := time.NewTicker(11 * time.Second)
 	checker := time.NewTicker(50 * time.Millisecond)
 	defer timeout.Stop()
 	defer checker.Stop()
@@ -244,7 +244,26 @@ func (c *Controller) startHostapd() error {
 		return err
 	}
 
-	time.Sleep(5 * time.Second)
+	// wait up to 10 seconds for Hostapd socket to start responding
+	timeout := time.NewTicker(10 * time.Second)
+	checker := time.NewTicker(220 * time.Millisecond)
+	defer timeout.Stop()
+	defer checker.Stop()
+	for {
+		found := false
+		select {
+		case <-timeout.C:
+			return nil
+			//return errors.New("timeout waiting for hostapd to come up")
+		case <-checker.C:
+			resp, err := hostapd.Query("/var/run/hostapd/"+c.config.Network.Wireless.Interface, "PING")
+			fmt.Printf("Respone = %q, err = %v\n", string(resp), err)
+		}
+		if found {
+			break
+		}
+	}
+
 	return nil
 }
 
