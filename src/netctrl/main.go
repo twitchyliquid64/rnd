@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"netctrl/hostapd"
 	"os"
@@ -15,7 +14,6 @@ import (
 	"time"
 
 	"github.com/krolaw/dhcp4"
-	"github.com/krolaw/dhcp4/conn"
 	"github.com/vishvananda/netlink"
 )
 
@@ -181,13 +179,10 @@ func (c *Controller) circuitBreakerRoutine() {
 }
 
 func (c *Controller) dhcpRoutine() {
-	wInterface := c.config.Network.Wireless.Interface
-	if wInterface == "" {
-		wInterface = c.bridgeInterface.Name
-	}
-	listener, err := conn.NewUDP4BoundListener(wInterface, ":67")
+	laddr, _ := net.ResolveUDPAddr("udp", ":67")
+	listener, err := net.ListenUDP("udp", laddr)
 	if err != nil {
-		log.Printf("DHCP listen err: %v", err)
+		fmt.Printf("DHCP listen err: %v\n", err)
 		return
 	}
 	defer listener.Close()
