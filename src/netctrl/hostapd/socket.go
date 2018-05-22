@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -12,7 +13,15 @@ const maxResponseSize = 4096
 
 // APStatus represents the status of hostapd.
 type APStatus struct {
-	State string `json:"state"`
+	State     string `json:"state"`
+	Frequency int    `json:"frequency"`
+	Channel   int    `json:"channel"`
+	Stations  int    `json:"stations_count"`
+}
+
+func atoiAlways(num string) int {
+	v, _ := strconv.Atoi(num)
+	return v
 }
 
 // QueryStatus returns the status of the hostapd service.
@@ -30,7 +39,10 @@ func QueryStatus(sock string) (*APStatus, error) {
 		set[line[:i]] = line[i+1:]
 	}
 	return &APStatus{
-		State: set["state"],
+		State:     set["state"],
+		Frequency: atoiAlways(set["freq"]),
+		Channel:   atoiAlways(set["channel"]),
+		Stations:  atoiAlways(set["num_sta[0]"]),
 	}, nil
 }
 
