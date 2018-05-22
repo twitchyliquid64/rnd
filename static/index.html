@@ -89,7 +89,8 @@
               <div class="card horizontal">
                 <div class="card-content black-text">
                   <span class="card-title">Station</span>
-                  <p>Offline.</p>
+                  <p class="green-text" ng-if="status.AP.state=='ENABLED'">OK.</p>
+                  <p class="red-text" ng-if="status.AP.state!='ENABLED'">Offline.</p>
                 </div>
               </div>
             </div>

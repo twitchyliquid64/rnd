@@ -24,6 +24,9 @@ func QueryStatus(sock string) (*APStatus, error) {
 	set := map[string]string{}
 	for _, line := range strings.Split(string(raw), "\n") {
 		i := strings.Index(line, "=")
+		if i < 1 {
+			continue
+		}
 		set[line[:i]] = line[i+1:]
 	}
 	return &APStatus{
