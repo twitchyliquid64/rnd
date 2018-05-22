@@ -1,7 +1,9 @@
 package hostapd
 
 import (
+	"math/rand"
 	"net"
+	"os"
 	"time"
 )
 
@@ -9,6 +11,8 @@ const maxResponseSize = 4096
 
 // Query sends a request to the hostapd socket at sock.
 func Query(sock, command string) ([]byte, error) {
+	lf := randStringFname()
+	defer os.Remove(lf)
 	laddr := net.UnixAddr{Name: "/tmp/rnd-sock-thingy", Net: "unixgram"}
 	c, err := net.DialUnix("unixgram", &laddr, &net.UnixAddr{Name: sock, Net: "unixgram"})
 	if err != nil {
@@ -27,4 +31,14 @@ func Query(sock, command string) ([]byte, error) {
 	}
 
 	return buff[:n], nil
+}
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randStringFname() string {
+	b := make([]rune, 12)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return "/tmp/rnd-s-" + string(b)
 }
