@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"netctrl/fsock"
 	"netctrl/hostapd"
 	"os"
 	"os/exec"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"github.com/krolaw/dhcp4"
-	"github.com/krolaw/dhcp4/conn"
 	"github.com/vishvananda/netlink"
 )
 
@@ -192,7 +192,7 @@ func (c *Controller) dhcpRoutine() {
 	if wInterface == "" {
 		wInterface = c.bridgeInterface.Name
 	}
-	listener, err := conn.NewUDP4FilterListener(wInterface, ":67")
+	listener, err := fsock.NewLiveListener([]string{wInterface}, ":67")
 	if err != nil {
 		fmt.Printf("DHCP listen err: %v\n", err)
 		return
