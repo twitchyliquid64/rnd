@@ -1,6 +1,7 @@
 package netctrl
 
 import (
+	"netctrl/hostapd"
 	"time"
 )
 
@@ -18,8 +19,13 @@ type ControllerState struct {
 			Name       string `json:"name"`
 			Icon       string `json:"icon"`
 		} `json:"vpn"`
-		Subnet string `json:"subnet"`
+		Subnet   string `json:"subnet"`
+		Wireless struct {
+			SSID string `json:"SSID"`
+		} `json:"wireless"`
 	} `json:"config"`
+
+	AP *hostapd.APStatus `json:"AP"`
 }
 
 // GetState returns the status of the controller.
@@ -31,5 +37,7 @@ func (c *Controller) GetState() *ControllerState {
 	out.Config.VPN.Configured = c.vpnInterface != nil
 	out.Config.VPN.Name = c.vpnConf.Name
 	out.Config.VPN.Icon = c.vpnConf.Icon
+	out.Config.Wireless.SSID = c.config.Network.Wireless.SSID
+	out.AP = c.lastAPState
 	return out
 }

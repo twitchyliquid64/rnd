@@ -4,10 +4,32 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"strings"
 	"time"
 )
 
 const maxResponseSize = 4096
+
+// APStatus represents the status of hostapd.
+type APStatus struct {
+	State string `json:"state"`
+}
+
+// QueryStatus returns the status of the hostapd service.
+func QueryStatus(sock string) (*APStatus, error) {
+	raw, err := Query(sock, "STATUS")
+	if err != nil {
+		return nil, err
+	}
+	set := map[string]string{}
+	for _, line := range strings.Split(string(raw), "\n") {
+		i := strings.Index(line, "=")
+		set[line[:i]] = line[i+1:]
+	}
+	return &APStatus{
+		State: set["state"],
+	}, nil
+}
 
 // Query sends a request to the hostapd socket at sock.
 func Query(sock, command string) ([]byte, error) {

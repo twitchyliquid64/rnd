@@ -32,6 +32,7 @@ type Controller struct {
 
 	wlanAddr    net.IP
 	hostapdProc *exec.Cmd
+	lastAPState *hostapd.APStatus
 
 	vpnProc      *exec.Cmd
 	vpnInterface *net.Interface
@@ -245,8 +246,8 @@ func (c *Controller) startHostapd() error {
 		return err
 	}
 
-	// wait up to 10 seconds for Hostapd socket to start responding
-	timeout := time.NewTicker(10 * time.Second)
+	// wait up to 8 seconds for Hostapd socket to start responding
+	timeout := time.NewTicker(8 * time.Second)
 	checker := time.NewTicker(220 * time.Millisecond)
 	defer timeout.Stop()
 	defer checker.Stop()
@@ -280,6 +281,29 @@ func (c *Controller) startHostapd() error {
 	return nil
 }
 
+func (c *Controller) hostapdStatusRoutine() {
+	defer c.wg.Done()
+	t := time.NewTicker(3 * time.Second)
+	defer t.Stop()
+
+	for {
+		select {
+		case <-c.shutdown:
+			return
+		case <-t.C:
+			if c.hostapdProc != nil {
+				c.setupLock.Lock()
+				resp, err := hostapd.QueryStatus("/var/run/hostapd/" + c.config.Network.Wireless.Interface)
+				if err != nil {
+					continue
+				}
+				c.lastAPState = resp
+				c.setupLock.Unlock()
+			}
+		}
+	}
+}
+
 // NewController creates and starts a controller.
 func NewController(c *config.Config) (*Controller, error) {
 	ctr := &Controller{
@@ -311,6 +335,8 @@ func NewController(c *config.Config) (*Controller, error) {
 
 	ctr.wg.Add(1)
 	go ctr.circuitBreakerRoutine()
+	ctr.wg.Add(1)
+	go ctr.hostapdStatusRoutine()
 	go ctr.dhcpRoutine()
 	return ctr, nil
 }
