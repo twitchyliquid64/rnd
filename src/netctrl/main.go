@@ -9,6 +9,7 @@ import (
 	"netctrl/hostapd"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -253,11 +254,23 @@ func (c *Controller) startHostapd() error {
 		found := false
 		select {
 		case <-timeout.C:
-			return nil
-			//return errors.New("timeout waiting for hostapd to come up")
+			return errors.New("timeout waiting for hostapd to come up")
 		case <-checker.C:
+			p, err := os.FindProcess(c.hostapdProc.Process.Pid)
+			if err != nil {
+				return err
+			}
+			if p.Signal(syscall.Signal(0)) != nil {
+				return errors.New("hostapd has stopped")
+			}
+
 			resp, err := hostapd.Query("/var/run/hostapd/"+c.config.Network.Wireless.Interface, "STATUS")
-			fmt.Printf("Respone = %q, err = %v\n", string(resp), err)
+			if err != nil {
+				continue
+			}
+			if strings.Contains(string(resp), "state=ENABLED") {
+				found = true
+			}
 		}
 		if found {
 			break

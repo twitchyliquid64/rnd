@@ -13,7 +13,7 @@ const maxResponseSize = 4096
 func Query(sock, command string) ([]byte, error) {
 	lf := randStringFname()
 	defer os.Remove(lf)
-	laddr := net.UnixAddr{Name: "/tmp/rnd-sock-thingy", Net: "unixgram"}
+	laddr := net.UnixAddr{Name: lf, Net: "unixgram"}
 	c, err := net.DialUnix("unixgram", &laddr, &net.UnixAddr{Name: sock, Net: "unixgram"})
 	if err != nil {
 		return nil, err
