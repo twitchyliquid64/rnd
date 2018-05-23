@@ -172,6 +172,7 @@ func (c *Controller) circuitBreakerRoutine() {
 				rts, err := netlink.RouteGet(net.IP{8, 8, 8, 8})
 				if err != nil {
 					fmt.Printf("Failed to eval route: %+v\n", err)
+					c.setupLock.Unlock()
 					break
 				}
 				if rts[0].LinkIndex != c.vpnInterface.Index {
@@ -316,6 +317,7 @@ func (c *Controller) hostapdStatusRoutine() {
 				c.setupLock.Lock()
 				resp, err := hostapd.QueryStatus("/var/run/hostapd/" + c.config.Network.Wireless.Interface)
 				if err != nil {
+					c.setupLock.Unlock()
 					continue
 				}
 				c.lastAPState = resp
