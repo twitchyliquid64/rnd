@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/coreos/go-iptables/iptables"
 	"github.com/krolaw/dhcp4"
 	"github.com/vishvananda/netlink"
 )
@@ -29,6 +30,8 @@ type Controller struct {
 	bridgeInterface *net.Interface
 	bridgeAddr      net.IP
 	subnet          *net.IPNet
+	areMasquerading bool
+	ipt             *iptables.IPTables
 
 	wlanAddr    net.IP
 	hostapdProc *exec.Cmd
@@ -65,6 +68,12 @@ func (c *Controller) Close() error {
 		}
 		if p.Signal(syscall.Signal(0)) == nil {
 			p.Kill()
+		}
+	}
+
+	if c.areMasquerading {
+		if err := c.ipt.Delete("nat", "POSTROUTING", "-m", "physdev", "--physdev-in", c.config.Network.Wireless.Interface, "-j", "MASQUERADE"); err != nil {
+			return err
 		}
 	}
 
@@ -144,7 +153,8 @@ func (c *Controller) SetVPN(vpn *config.VPNOpt) error {
 			break
 		}
 	}
-	return nil
+
+	return IPv4EnableForwarding(true)
 }
 
 func (c *Controller) circuitBreakerRoutine() {
@@ -169,7 +179,11 @@ func (c *Controller) circuitBreakerRoutine() {
 					c.breakerUpdated = time.Now()
 					if c.breakerTripped {
 						fmt.Println("Tripped:", rts, c.vpnInterface)
-						// do thing
+						if forwardingEnabled, err2 := IPv4ForwardingEnabled(); err2 == nil && forwardingEnabled {
+							if err3 := IPv4EnableForwarding(false); err3 != nil {
+								fmt.Printf("Error disabling IPv4 forwarding: %v\n", err3)
+							}
+						}
 					}
 				}
 				c.setupLock.Unlock()
@@ -278,6 +292,10 @@ func (c *Controller) startHostapd() error {
 		}
 	}
 
+	if err := c.ipt.AppendUnique("nat", "POSTROUTING", "-m", "physdev", "--physdev-in", c.config.Network.Wireless.Interface, "-j", "MASQUERADE"); err != nil {
+		return err
+	}
+	c.areMasquerading = true
 	return nil
 }
 
@@ -306,11 +324,16 @@ func (c *Controller) hostapdStatusRoutine() {
 
 // NewController creates and starts a controller.
 func NewController(c *config.Config) (*Controller, error) {
+	ipt, err := iptables.New()
+	if err != nil {
+		return nil, err
+	}
+
 	ctr := &Controller{
 		shutdown: make(chan bool),
 		config:   c,
+		ipt:      ipt,
 	}
-	var err error
 	ctr.bridgeAddr, ctr.subnet, err = net.ParseCIDR(c.Network.Subnet)
 	if err != nil {
 		return nil, err

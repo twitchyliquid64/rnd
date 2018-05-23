@@ -2,6 +2,8 @@ package netctrl
 
 import (
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"net"
 
 	"github.com/vishvananda/netlink"
@@ -72,4 +74,25 @@ func SetInterfaceAddr(iName string, addr *net.IPNet) error {
 		return err
 	}
 	return netlink.AddrAdd(intf, &netlink.Addr{IPNet: addr})
+}
+
+// IPv4ForwardingEnabled returns true if the kernel is configured to forward IPv4 packets.
+func IPv4ForwardingEnabled() (bool, error) {
+	d, err := ioutil.ReadFile("/proc/sys/net/ipv4/ip_forward")
+	if err != nil {
+		return false, err
+	}
+	if len(d) != 2 {
+		return false, fmt.Errorf("expected single byte read, got %d", len(d))
+	}
+	return d[0] == '1', nil
+}
+
+// IPv4EnableForwarding enables or disables forwarding of IPv4 packets.
+func IPv4EnableForwarding(state bool) error {
+	outData := "0"
+	if state {
+		outData = "1"
+	}
+	return ioutil.WriteFile("/proc/sys/net/ipv4/ip_forward", []byte(outData), 0644)
 }

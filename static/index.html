@@ -89,9 +89,11 @@
               <div class="card horizontal">
                 <div class="card-content black-text">
                   <span class="card-title">Station</span>
-                  <p class="green-text" ng-if="status.AP.state=='ENABLED'">OK.</p>
                   <p class="red-text" ng-if="status.AP.state!='ENABLED'">Offline.</p>
-                  <p ng-if="status.AP.state=='ENABLED'">Set to channel {{status.AP.channel}} ({{status.AP.frequency}}Mhz).</p>
+                  <p ng-if="status.AP.state=='ENABLED'">
+                    <span class="green-text">OK - </span>
+                    Set to channel {{status.AP.channel}} ({{status.AP.frequency}}Mhz), servicing {{status.AP.stations_count}} clients.
+                  </p>
                 </div>
               </div>
             </div>
