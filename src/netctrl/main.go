@@ -218,7 +218,7 @@ func (c *Controller) dhcpRoutine() {
 		options: options,
 		leases:  map[string]net.IP{},
 	}
-	bcast := next
+	bcast := dhcp4.IPAdd(next, 0)
 	bcast[len(bcast)-1] = 255
 	if handler.debug {
 		fmt.Printf("DHCP broadcast address = %+v\nRouter address = %+v\n", bcast, c.bridgeAddr)

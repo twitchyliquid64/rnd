@@ -17,7 +17,7 @@ type bridgeServices struct {
 
 func (h *bridgeServices) ServeDHCP(p dhcp.Packet, msgType dhcp.MessageType, options dhcp.Options) (d dhcp.Packet) {
 	if h.debug {
-		fmt.Printf("DHCP msg from %q\n", p.CHAddr().String())
+		fmt.Printf("DHCP msg %q from %q\n", msgType.String(), p.CHAddr().String())
 		fmt.Printf("Leases: %+v\nNext address: %+v\nBase address: %+v\n", h.leases, h.next, h.baseIP)
 	}
 
@@ -43,9 +43,9 @@ func (h *bridgeServices) ServeDHCP(p dhcp.Packet, msgType dhcp.MessageType, opti
 			}
 			return nil // Message not for this dhcp server
 		}
-		reqIP := net.IP(options[dhcp.OptionRequestedIPAddress])
+		reqIP := dhcp.IPAdd(options[dhcp.OptionRequestedIPAddress], 0)
 		if reqIP == nil {
-			reqIP = net.IP(p.CIAddr())
+			reqIP = net.IP(dhcp.IPAdd(p.CIAddr(), 0))
 		}
 
 		if len(reqIP) == 4 && !reqIP.Equal(net.IPv4zero) && reqIP.Equal(h.next) {
