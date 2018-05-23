@@ -203,12 +203,9 @@ func (c *Controller) dhcpRoutine() {
 	}
 	defer listener.Close()
 
-	optionRouter := make([]byte, len(c.bridgeAddr))
-	copy(optionRouter, c.bridgeAddr)
-
 	options := dhcp4.Options{
 		dhcp4.OptionSubnetMask:             []byte{255, 255, 255, 0},
-		dhcp4.OptionRouter:                 optionRouter,
+		dhcp4.OptionRouter:                 c.bridgeAddr.To4(),
 		dhcp4.OptionPerformRouterDiscovery: []byte{0},
 		dhcp4.OptionDomainNameServer:       []byte{8, 8, 8, 8},
 	}
@@ -224,7 +221,7 @@ func (c *Controller) dhcpRoutine() {
 	bcast := dhcp4.IPAdd(next, 0)
 	bcast[len(bcast)-1] = 255
 	if handler.debug {
-		fmt.Printf("DHCP broadcast address = %+v\nRouter address = %+v\nRouter option = %+v\n", bcast, c.bridgeAddr, optionRouter)
+		fmt.Printf("DHCP broadcast address = %+v\nRouter address = %+v\n", bcast, c.bridgeAddr)
 	}
 
 	for {
