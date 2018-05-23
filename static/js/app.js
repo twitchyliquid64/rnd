@@ -11,8 +11,9 @@ app.controller('BodyController', ["$scope", "$rootScope", function ($scope, $roo
 app.controller('HomeController', ["$scope", "$http", "$rootScope", "$interval", function ($scope, $http, $rootScope, $interval) {
     $scope.loading = true;
     $scope.status = {};
+    $scope.vpns = [];
 
-    $scope.loadStatus = function(query){
+    $scope.loadStatus = function(){
       $scope.loading = true;
       $scope.error = null;
       $http({
@@ -21,6 +22,19 @@ app.controller('HomeController', ["$scope", "$http", "$rootScope", "$interval", 
       }).then(function successCallback(response) {
         $scope.status = response.data;
         $scope.loading = false;
+      }, function errorCallback(response) {
+        $scope.loading = false;
+        $scope.error = response;
+      });
+    }
+
+    $scope.loadVPNs = function(){
+      $scope.error = null;
+      $http({
+        method: 'GET',
+        url: '/vpns',
+      }).then(function successCallback(response) {
+        $scope.vpns = response.data;
       }, function errorCallback(response) {
         $scope.loading = false;
         $scope.error = response;
@@ -44,4 +58,5 @@ app.controller('HomeController', ["$scope", "$http", "$rootScope", "$interval", 
     }
 
     $scope.loadStatus();
+    $scope.loadVPNs();
 }]);
