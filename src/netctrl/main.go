@@ -203,9 +203,18 @@ func (c *Controller) dhcpRoutine() {
 	}
 	defer listener.Close()
 
+	// rfc2132 section 3.5:
+	// Code   Len         Address 1               Address 2
+	// +-----+-----+-----+-----+-----+-----+-----+-----+--
+	// |  3  |  n  |  a1 |  a2 |  a3 |  a4 |  a1 |  a2 |  ...
+	// +-----+-----+-----+-----+-----+-----+-----+-----+--
+	optionRouter := make([]byte, 1+len(c.bridgeAddr))
+	copy(optionRouter[1:], c.bridgeAddr)
+	optionRouter[0] = 1
+
 	options := dhcp4.Options{
 		dhcp4.OptionSubnetMask:             []byte{255, 255, 255, 0},
-		dhcp4.OptionRouter:                 []byte(c.bridgeAddr),
+		dhcp4.OptionRouter:                 optionRouter,
 		dhcp4.OptionPerformRouterDiscovery: []byte{0},
 		dhcp4.OptionDomainNameServer:       []byte{8, 8, 8, 8},
 	}
