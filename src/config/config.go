@@ -34,12 +34,12 @@ type Config struct {
 
 // VPNOpt represents one option for configuring the VPN.
 type VPNOpt struct {
-	Name string `hcl:"name"`
-	Path string `hcl:"path"`
-	Icon string `hcl:"icon"`
+	Name string `hcl:"name" json:"name"`
+	Path string `hcl:"path" json:"path"`
+	Icon string `hcl:"icon" json:"icon"`
 
-	Username string `hcl:"username"`
-	Password string `hcl:"password"`
+	Username string `hcl:"username" json:"-"`
+	Password string `hcl:"password" json:"-"`
 }
 
 func loadConfig(data []byte) (*Config, error) {

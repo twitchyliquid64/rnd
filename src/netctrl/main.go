@@ -84,6 +84,47 @@ func (c *Controller) Close() error {
 func (c *Controller) SetVPN(vpn *config.VPNOpt) error {
 	c.setupLock.Lock()
 	defer c.setupLock.Unlock()
+
+	// Prevent forwarding - so traffic is not routed outside the VPN.
+	if forwardingEnabled, err2 := IPv4ForwardingEnabled(); err2 == nil && forwardingEnabled {
+		if err3 := IPv4EnableForwarding(false); err3 != nil {
+			fmt.Printf("Error disabling IPv4 forwarding: %v\n", err3)
+		}
+	}
+
+	// kill any existing VPN process.
+	if c.vpnProc != nil {
+		p, err := os.FindProcess(c.vpnProc.Process.Pid)
+		if err != nil {
+			return err
+		}
+		if p.Signal(syscall.Signal(0)) == nil {
+			p.Kill()
+		}
+		c.vpnProc = nil
+		c.vpnInterface = nil
+
+		// wait for interface to disappear
+		timeout := time.NewTicker(5 * time.Second)
+		checker := time.NewTicker(50 * time.Millisecond)
+		defer timeout.Stop()
+		defer checker.Stop()
+		for {
+			notFound := false
+			select {
+			case <-timeout.C:
+				return errors.New("timeout waiting for VPN to shut down")
+			case <-checker.C:
+				if _, err2 := net.InterfaceByName("tun" + c.config.Network.InterfaceIdent); err2 != nil {
+					notFound = true
+				}
+			}
+			if notFound {
+				break
+			}
+		}
+	}
+
 	c.vpnConf = vpn
 	pw, err := ioutil.TempFile("", "")
 	if err != nil {
