@@ -72,7 +72,7 @@ func (c *Controller) Close() error {
 	}
 
 	if c.areMasquerading {
-		if err := c.ipt.Delete("nat", "POSTROUTING", "-m", "physdev", "--physdev-in", c.config.Network.Wireless.Interface, "-j", "MASQUERADE"); err != nil {
+		if err := c.ipt.Delete("nat", "POSTROUTING", "-m", "physdev", "--physdev-in", "br"+c.config.Network.InterfaceIdent, "-j", "MASQUERADE"); err != nil {
 			return err
 		}
 	}
@@ -292,7 +292,7 @@ func (c *Controller) startHostapd() error {
 		}
 	}
 
-	if err := c.ipt.AppendUnique("nat", "POSTROUTING", "-m", "physdev", "--physdev-in", c.config.Network.Wireless.Interface, "-j", "MASQUERADE"); err != nil {
+	if err := c.ipt.AppendUnique("nat", "POSTROUTING", "-m", "physdev", "--physdev-in", "br"+c.config.Network.InterfaceIdent, "-j", "MASQUERADE"); err != nil {
 		return err
 	}
 	c.areMasquerading = true
