@@ -203,14 +203,8 @@ func (c *Controller) dhcpRoutine() {
 	}
 	defer listener.Close()
 
-	// rfc2132 section 3.5:
-	// Code   Len         Address 1               Address 2
-	// +-----+-----+-----+-----+-----+-----+-----+-----+--
-	// |  3  |  n  |  a1 |  a2 |  a3 |  a4 |  a1 |  a2 |  ...
-	// +-----+-----+-----+-----+-----+-----+-----+-----+--
-	optionRouter := make([]byte, 1+len(c.bridgeAddr))
-	copy(optionRouter[1:], c.bridgeAddr)
-	optionRouter[0] = 1
+	optionRouter := make([]byte, len(c.bridgeAddr))
+	copy(optionRouter, c.bridgeAddr)
 
 	options := dhcp4.Options{
 		dhcp4.OptionSubnetMask:             []byte{255, 255, 255, 0},
@@ -230,7 +224,7 @@ func (c *Controller) dhcpRoutine() {
 	bcast := dhcp4.IPAdd(next, 0)
 	bcast[len(bcast)-1] = 255
 	if handler.debug {
-		fmt.Printf("DHCP broadcast address = %+v\nRouter address = %+v\n", bcast, c.bridgeAddr)
+		fmt.Printf("DHCP broadcast address = %+v\nRouter address = %+v\nRouter option = %+v\n", bcast, c.bridgeAddr, optionRouter)
 	}
 
 	for {
