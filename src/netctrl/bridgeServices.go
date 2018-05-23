@@ -17,7 +17,8 @@ type bridgeServices struct {
 
 func (h *bridgeServices) ServeDHCP(p dhcp.Packet, msgType dhcp.MessageType, options dhcp.Options) (d dhcp.Packet) {
 	if h.debug {
-		fmt.Printf("DHCP msg from %q: %+v\n", p.CHAddr().String(), p)
+		fmt.Printf("DHCP msg from %q\n", p.CHAddr().String())
+		fmt.Printf("Leases: %+v\nNext address: %+v\nBase address: %+v\n", h.leases, h.next, h.baseIP)
 	}
 
 	for n, opt := range h.options {

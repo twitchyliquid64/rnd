@@ -220,6 +220,9 @@ func (c *Controller) dhcpRoutine() {
 	}
 	bcast := next
 	bcast[len(bcast)-1] = 255
+	if handler.debug {
+		fmt.Printf("DHCP broadcast address = %+v\nRouter address = %+v\n", bcast, c.bridgeAddr)
+	}
 
 	for {
 		err := dhcp4.Serve(&dhcpLimitedBroadcastListener{conn: listener, bcastAddr: bcast}, handler)
