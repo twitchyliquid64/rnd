@@ -1,3 +1,4 @@
+
 <html>
 <head>
     <title>Research Net</title>
@@ -82,6 +83,14 @@
                   <div ng-if="status.config.vpn.configured">
                     <p><span class="{{status.config.vpn.icon}}"></span> {{status.config.vpn.name}}</p>
                   </div>
+
+                  <div class="row" style="width: 100%; padding-top:12px;">
+                    <label class="col s4">Change VPN</label>
+                    <select class="col s8 browser-default">
+                      <option ng-repeat="vpn in vpns" value="{{vpn.name}}">{{vpn.name}}</option>
+                    </select>
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -91,8 +100,8 @@
                   <span class="card-title">Station</span>
                   <p class="red-text" ng-if="status.AP.state!='ENABLED'">Offline.</p>
                   <p ng-if="status.AP.state=='ENABLED'">
-                    <span class="green-text">OK - </span>
-                    Set to channel {{status.AP.channel}} ({{status.AP.frequency}}Mhz), servicing {{status.AP.stations_count}} clients.
+                    <span class="green-text">OK</span> <br>
+                    Set to channel {{status.AP.channel}} ({{status.AP.frequency}}Mhz).<br> Servicing {{status.AP.stations_count}} clients.
                   </p>
                 </div>
               </div>
