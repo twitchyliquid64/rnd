@@ -68,4 +68,11 @@ vpn_configs = [
     password = "..."
   }
 ]
+
+firewall = {
+  vpnbox_blocked_ports = [22, 80]
+  blocked_subnets = [
+    "192.168.1.1/24"
+  ]
+}
 ```

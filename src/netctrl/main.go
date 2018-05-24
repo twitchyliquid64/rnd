@@ -9,6 +9,7 @@ import (
 	"netctrl/hostapd"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -368,6 +369,23 @@ func (c *Controller) hostapdStatusRoutine() {
 	}
 }
 
+func (c *Controller) setupFirewall() error {
+	for _, port := range c.config.Firewall.VPNBoxBlockedPorts {
+		if err := c.ipt.AppendUnique("filter", "INPUT", "-s", c.config.Network.Subnet, "-p", "tcp", "--destination-port", strconv.Itoa(port), "-j", "DROP"); err != nil {
+			return err
+		}
+		if err := c.ipt.AppendUnique("filter", "INPUT", "-s", c.config.Network.Subnet, "-p", "udp", "--destination-port", strconv.Itoa(port), "-j", "DROP"); err != nil {
+			return err
+		}
+	}
+	for _, subnet := range c.config.Firewall.BlockedSubnets {
+		if err := c.ipt.AppendUnique("filter", "FORWARD", "-s", c.config.Network.Subnet, "-d", subnet, "-j", "DROP"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // NewController creates and starts a controller.
 func NewController(c *config.Config) (*Controller, error) {
 	ipt, err := iptables.New()
@@ -395,6 +413,11 @@ func NewController(c *config.Config) (*Controller, error) {
 			DeleteNetBridge(ctr.bridgeInterface.Name)
 			return nil, err
 		}
+	}
+
+	if err := ctr.setupFirewall(); err != nil {
+		DeleteNetBridge(ctr.bridgeInterface.Name)
+		return nil, err
 	}
 
 	if err := ctr.startHostapd(); err != nil {

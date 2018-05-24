@@ -30,6 +30,11 @@ type Config struct {
 	} `hcl:"debug"`
 
 	VPNConfigurations []VPNOpt `hcl:"vpn_configs"`
+
+	Firewall struct {
+		VPNBoxBlockedPorts []int    `hcl:"vpnbox_blocked_ports"`
+		BlockedSubnets     []string `hcl:"blocked_subnets"`
+	} `hcl:"firewall"`
 }
 
 // VPNOpt represents one option for configuring the VPN.
