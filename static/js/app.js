@@ -1,3 +1,4 @@
+
 var app = angular.module('kcdb', ['ui.materialize', 'angularMoment']);
 
 app.controller('BodyController', ["$scope", "$rootScope", function ($scope, $rootScope) {
@@ -22,6 +23,8 @@ app.controller('HomeController', ["$scope", "$http", "$rootScope", "$interval", 
       }).then(function successCallback(response) {
         $scope.status = response.data;
         $scope.loading = false;
+        $scope.vpn = response.data.config.vpn.name;
+        $scope.loadVPNs();
       }, function errorCallback(response) {
         $scope.loading = false;
         $scope.error = response;
@@ -35,6 +38,35 @@ app.controller('HomeController', ["$scope", "$http", "$rootScope", "$interval", 
         url: '/vpns',
       }).then(function successCallback(response) {
         $scope.vpns = response.data;
+      }, function errorCallback(response) {
+        $scope.loading = false;
+        $scope.error = response;
+      });
+    }
+
+    $scope.vpnIcon = function(name){
+      for (var i = 0; i < $scope.vpns.length; i++) {
+        if ($scope.vpns[i].name == name)
+          return $scope.vpns[i].icon;
+      }
+      return '';
+    }
+
+    $scope.vpnChanged = function(){
+      if ($scope.ignoreVpnChange) {
+        $scope.ignoreVpnChange = false;
+        return;
+      }
+
+      console.log("VPN changed to: ", $scope.vpn);
+      $scope.loading = true;
+      $scope.error = null;
+      $http({
+        method: 'POST',
+        url: '/setVPN',
+        data: {name: $scope.vpn},
+      }).then(function successCallback(response) {
+        $scope.loading = false;
       }, function errorCallback(response) {
         $scope.loading = false;
         $scope.error = response;
@@ -58,5 +90,4 @@ app.controller('HomeController', ["$scope", "$http", "$rootScope", "$interval", 
     }
 
     $scope.loadStatus();
-    $scope.loadVPNs();
 }]);

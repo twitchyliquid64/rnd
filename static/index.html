@@ -1,4 +1,5 @@
 
+
 <html>
 <head>
     <title>Research Net</title>
@@ -71,7 +72,7 @@
                   <span class="card-title">Circuit breaker</span>
                   <p class="green-text" ng-if="!status.breaker.tripped">OK.</p>
                   <p class="red-text" ng-if="status.breaker.tripped">TRIPPED.</p>
-                  <label><span am-time-ago="status.breaker.last_updated"></span></label>
+                  <label>Last transition <span am-time-ago="status.breaker.last_updated"></span></label>
                 </div>
               </div>
             </div>
@@ -81,12 +82,12 @@
                   <span class="card-title">VPN</span>
                   <p ng-if="!status.config.vpn.configured">Offline.</p>
                   <div ng-if="status.config.vpn.configured">
-                    <p><span class="{{status.config.vpn.icon}}"></span> {{status.config.vpn.name}}</p>
+                    <p><span class="{{vpnIcon(vpn)}}"></span> {{vpn}}</p>
                   </div>
 
                   <div class="row" style="width: 100%; padding-top:12px;">
                     <label class="col s4">Change VPN</label>
-                    <select class="col s8 browser-default">
+                    <select class="col s8 browser-default" ng-model="vpn" ng-change="vpnChanged();">
                       <option ng-repeat="vpn in vpns" value="{{vpn.name}}">{{vpn.name}}</option>
                     </select>
                   </div>
