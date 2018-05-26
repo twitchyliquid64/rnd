@@ -6,6 +6,7 @@ import (
 	"time"
 
 	dhcp "github.com/krolaw/dhcp4"
+	"github.com/miekg/dns"
 )
 
 type bridgeServices struct {
@@ -60,4 +61,40 @@ func (h *bridgeServices) ServeDHCP(p dhcp.Packet, msgType dhcp.MessageType, opti
 		return dhcp.ReplyPacket(p, dhcp.NAK, h.baseIP, nil, 0, nil)
 	}
 	return nil
+}
+
+func (h *bridgeServices) setupUDPDNS() error {
+	laddr, err := net.ResolveUDPAddr("udp", ":53")
+	if err != nil {
+		return err
+	}
+
+	listener, err := net.ListenUDP("udp", laddr)
+	if err != nil {
+		return err
+	}
+
+	server := &dns.Server{PacketConn: listener, Handler: h, ReadTimeout: time.Second, WriteTimeout: time.Second}
+	go server.ActivateAndServe()
+	return nil
+}
+
+// ServeDNS handles DNS requests.
+func (h *bridgeServices) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
+	m := new(dns.Msg)
+	m.SetReply(r)
+
+	for _, q := range r.Question {
+		switch q.Name {
+		case "googleDNS.":
+			m.Answer = append(m.Answer, &dns.A{
+				Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0},
+				A:   net.ParseIP("8.8.8.8"),
+			})
+		}
+	}
+
+	m.RecursionDesired = false
+	m.RecursionAvailable = false
+	w.WriteMsg(m)
 }

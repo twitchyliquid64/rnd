@@ -237,7 +237,7 @@ func (c *Controller) circuitBreakerRoutine() {
 	}
 }
 
-func (c *Controller) dhcpRoutine() {
+func (c *Controller) dhcpDNSRoutine() {
 	laddr, _ := net.ResolveUDPAddr("udp", ":67")
 	listener, err := net.ListenUDP("udp", laddr)
 	if err != nil {
@@ -265,6 +265,10 @@ func (c *Controller) dhcpRoutine() {
 	bcast[len(bcast)-1] = 255
 	if handler.debug {
 		fmt.Printf("DHCP broadcast address = %+v\nRouter address = %+v\n", bcast, c.bridgeAddr)
+	}
+
+	if err = handler.setupUDPDNS(); err != nil {
+		fmt.Printf("DNS setup failed: %v\n", err)
 	}
 
 	for {
@@ -429,6 +433,6 @@ func NewController(c *config.Config) (*Controller, error) {
 	go ctr.circuitBreakerRoutine()
 	ctr.wg.Add(1)
 	go ctr.hostapdStatusRoutine()
-	go ctr.dhcpRoutine()
+	go ctr.dhcpDNSRoutine()
 	return ctr, nil
 }
