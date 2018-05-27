@@ -1,8 +1,10 @@
 package netctrl
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 	"time"
 
 	dhcp "github.com/krolaw/dhcp4"
@@ -87,9 +89,9 @@ func (h *bridgeServices) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	for _, q := range r.Question {
 		switch q.Name {
-		case h.name:
+		case h.name + ".":
 			m.Answer = append(m.Answer, &dns.A{
-				Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0},
+				Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 60},
 				A:   h.baseIP,
 			})
 		case "googleDNS.":
@@ -97,10 +99,70 @@ func (h *bridgeServices) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 				Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0},
 				A:   net.ParseIP("8.8.8.8"),
 			})
+		default:
+			resp, err := http.Get("https://dns.google.com/resolve?name=" + q.Name + "&type=" + fmt.Sprintf("%d", q.Qtype))
+			if err != nil {
+				fmt.Printf("Failed to lookup DNS for %v: %v\n", q.Name, err)
+				continue
+			}
+			var response dnsResponse
+			if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+				fmt.Printf("Failed to decode DNS response for %v: %v\n", q.Name, err)
+				continue
+			}
+			for _, a := range response.Answer {
+				switch a.Type {
+				case dns.TypeA:
+					m.Answer = append(m.Answer, &dns.A{
+						Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: a.TTL},
+						A:   net.ParseIP(a.Data),
+					})
+				case dns.TypeAAAA:
+					m.Answer = append(m.Answer, &dns.AAAA{
+						Hdr:  dns.RR_Header{Name: q.Name, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: a.TTL},
+						AAAA: net.ParseIP(a.Data),
+					})
+				case dns.TypeNS:
+					m.Answer = append(m.Answer, &dns.NS{
+						Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: a.TTL},
+						Ns:  a.Data,
+					})
+				case dns.TypeCNAME:
+					m.Answer = append(m.Answer, &dns.CNAME{
+						Hdr:    dns.RR_Header{Name: q.Name, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: a.TTL},
+						Target: a.Data,
+					})
+				case dns.TypeTXT:
+					m.Answer = append(m.Answer, &dns.TXT{
+						Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: a.TTL},
+						Txt: []string{a.Data},
+					})
+				}
+			}
 		}
 	}
 
 	m.RecursionDesired = false
-	m.RecursionAvailable = false
+	m.RecursionAvailable = true
 	w.WriteMsg(m)
+}
+
+type dnsResponse struct {
+	Status     int32         `json:"Status,omitempty"`
+	Question   []dnsQuestion `json:"Question,omitempty"`
+	Answer     []dnsRecord   `json:"Answer,omitempty"`
+	Authority  []dnsRecord   `json:"Authority,omitempty"`
+	Additional []dnsRecord   `json:"Additional,omitempty"`
+}
+
+type dnsQuestion struct {
+	Name string `json:"name,omitempty"`
+	Type int32  `json:"type,omitempty"`
+}
+
+type dnsRecord struct {
+	Name string `json:"name,omitempty"`
+	Type uint16 `json:"type,omitempty"`
+	TTL  uint32 `json:"TTL,omitempty"`
+	Data string `json:"data,omitempty"`
 }
