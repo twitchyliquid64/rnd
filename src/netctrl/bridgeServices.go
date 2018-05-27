@@ -10,6 +10,7 @@ import (
 )
 
 type bridgeServices struct {
+	name         string
 	debug        bool
 	baseIP, next net.IP
 	leases       map[string]net.IP
@@ -63,8 +64,8 @@ func (h *bridgeServices) ServeDHCP(p dhcp.Packet, msgType dhcp.MessageType, opti
 	return nil
 }
 
-func (h *bridgeServices) setupUDPDNS() error {
-	laddr, err := net.ResolveUDPAddr("udp", ":53")
+func (h *bridgeServices) setupUDPDNS(listenerIP string) error {
+	laddr, err := net.ResolveUDPAddr("udp", listenerIP+":53")
 	if err != nil {
 		return err
 	}
@@ -86,6 +87,11 @@ func (h *bridgeServices) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	for _, q := range r.Question {
 		switch q.Name {
+		case h.name:
+			m.Answer = append(m.Answer, &dns.A{
+				Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0},
+				A:   h.baseIP,
+			})
 		case "googleDNS.":
 			m.Answer = append(m.Answer, &dns.A{
 				Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0},

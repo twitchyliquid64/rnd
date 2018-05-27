@@ -246,15 +246,20 @@ func (c *Controller) dhcpDNSRoutine() {
 	}
 	defer listener.Close()
 
+	var domainServers []byte
+	domainServers = append(domainServers, c.bridgeAddr.To4()...)
+	domainServers = append(domainServers, 8, 8, 8, 8)
+
 	options := dhcp4.Options{
 		dhcp4.OptionSubnetMask:             []byte{255, 255, 255, 0},
 		dhcp4.OptionRouter:                 c.bridgeAddr.To4(),
 		dhcp4.OptionPerformRouterDiscovery: []byte{0},
-		dhcp4.OptionDomainNameServer:       []byte{8, 8, 8, 8},
+		dhcp4.OptionDomainNameServer:       domainServers,
 	}
 
 	next := dhcp4.IPAdd(c.wlanAddr, 1)
 	handler := &bridgeServices{
+		name:    c.config.Name,
 		debug:   c.config.Debug.DHCP,
 		baseIP:  c.wlanAddr,
 		next:    next,
@@ -267,7 +272,7 @@ func (c *Controller) dhcpDNSRoutine() {
 		fmt.Printf("DHCP broadcast address = %+v\nRouter address = %+v\n", bcast, c.bridgeAddr)
 	}
 
-	if err = handler.setupUDPDNS(); err != nil {
+	if err = handler.setupUDPDNS(c.bridgeAddr.String()); err != nil {
 		fmt.Printf("DNS setup failed: %v\n", err)
 	}
 
